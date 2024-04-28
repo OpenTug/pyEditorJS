@@ -1,45 +1,40 @@
 import typing as t
-
 from dataclasses import dataclass
+from pathlib import Path
 
-
-from .exceptions import EditorJsParseError
 from .blocks import *
-
+from .exceptions import EditorJsParseError
 
 
 @dataclass
 class EditorJsParser:
     """
-        An Editor.js parser.
+    An Editor.js parser.
     """
 
     content: dict
     """The JSON data of Editor.js content."""
 
-
     def __post_init__(self) -> None:
         if not isinstance(self.content, dict):
             raise EditorJsParseError(f"Content must be `dict`, not {type(self.content).__name__}")
 
-
-
     @staticmethod
-    def _get_block(data: dict) -> t.Optional[t.Type[EditorJsBlock]]:
+    def _get_block(data: dict) -> type[EditorJsBlock] | None:
         """
-            Obtains block instance from block data.
+        Obtains block instance from block data.
         """
 
-        BLOCKS_MAP: t.Dict[str, t.Type[EditorJsBlock]] = {
-            'header': HeaderBlock,
-            'paragraph': ParagraphBlock,
-            'list': ListBlock,
-            'delimiter': DelimiterBlock,
-            'image': ImageBlock,
-        }        
+        BLOCKS_MAP: dict[str, type[EditorJsBlock]] = {
+            "header": HeaderBlock,
+            "paragraph": ParagraphBlock,
+            "list": ListBlock,
+            "table": TableBlock,
+            "delimiter": DelimiterBlock,
+            "image": ImageBlock,
+        }
 
-
-        _type = data.get("type", None)
+        _type = data.get("type")
 
         try:
             return BLOCKS_MAP[_type](_data=data)
@@ -47,18 +42,16 @@ class EditorJsParser:
         except KeyError:
             return None
 
-
-    def blocks(self) -> t.List[t.Type[EditorJsBlock]]:
+    def blocks(self) -> list[type[EditorJsBlock]]:
         """
-            Obtains a list of all available blocks from the editor's JSON data.
+        Obtains a list of all available blocks from the editor's JSON data.
         """
 
-        all_blocks: t.List[t.Type[EditorJsBlock]] = []
+        all_blocks: list[type[EditorJsBlock]] = []
         blocks = self.content.get("blocks", [])
 
         if not isinstance(blocks, list):
             raise EditorJsParseError(f"Blocks is not `list`, but `{type(blocks).__name__}`")
-
 
         for block_data in blocks:
             block = self._get_block(data=block_data)
@@ -67,24 +60,26 @@ class EditorJsParser:
 
             all_blocks.append(block)
 
-
         return all_blocks
 
-
-
-    def __iter__(self) -> t.Iterator[t.Type[EditorJsBlock]]:
+    def __iter__(self) -> t.Iterator[type[EditorJsBlock]]:
         """Returns `iter(self.blocks())`"""
 
         return iter(self.blocks())
 
-
-
-    def html(self, sanitize: bool=False) -> str:
+    def html(self, sanitize: bool = False) -> str:
         """
-            Renders the editor's JSON content as HTML.
+        Renders the editor's JSON content as HTML.
 
-            ### Parameters:
-            - `sanitize` - whether to also sanitize the blocks' texts/contents.
+        ### Parameters:
+        - `sanitize` - whether to also sanitize the blocks' texts/contents.
         """
 
-        return '\n'.join([block.html(sanitize=sanitize) for block in self.blocks()])
+        path = Path(__file__).parent.parent.absolute() / Path("editorjs.css")
+        with open(path) as f:
+            head = f'<head><style type="text/css">{f.read()}</style></head>'
+
+        body = (
+            f'<body>{'\n'.join([block.html(sanitize=sanitize) for block in self.blocks()])}</body>'
+        )
+        return head + body

@@ -1,6 +1,6 @@
+import os
 import typing as t
 from dataclasses import dataclass
-from pathlib import Path
 
 from .blocks import *
 from .exceptions import EditorJsParseError
@@ -75,7 +75,8 @@ class EditorJsParser:
         - `sanitize` - whether to also sanitize the blocks' texts/contents.
         """
 
-        path = Path(__file__).parent.parent.absolute() / Path("editorjs.css")
+        path = os.path.join(os.path.dirname(__file__), "editorjs.css")
+
         with open(path) as f:
             head = f'<head><style type="text/css">{f.read()}</style></head>'
 

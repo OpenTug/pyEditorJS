@@ -81,6 +81,9 @@ class EditorJsParser:
             head = f'<head><style type="text/css">{f.read()}</style></head>'
 
         body = (
-            f"<body>{'\n'.join([block.html(sanitize=sanitize) for block in self.blocks()])}</body>"
+            "<body>"
+            + "\n".join([block.html(sanitize=sanitize) for block in self.blocks()])
+            + "</body>"
         )
+
         return head + body
